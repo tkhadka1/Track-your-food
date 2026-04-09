@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Track Your Food</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cal: #FF6B6B;
+    --protein: #4ECDC4;
+    --carbs: #FFE66D;
+    --fat: #FF8B94;
+    --water: #74B9FF;
+    --bg: #FFF8F0;
+    --card: #FFFFFF;
+    --text: #2D3436;
+    --muted: #8e9eb0;
+    --border: #F0E8DD;
+    --green: #55efc4;
+    --purple: #a29bfe;
+    --radius: 20px;
+    --shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(135deg, #FF6B6B 0%, #FF8B94 40%, #FFAB76 100%);
+    padding: 28px 24px 70px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    width: 200px; height: 200px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+    top: -60px; right: -40px;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    width: 120px; height: 120px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 50%;
+    bottom: 10px; left: -20px;
+  }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 1; }
+  .greeting { color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 600; }
+  .user-name { color: #fff; font-family: 'Fredoka One', cursive; font-size: 28px; margin-top: 2px; }
+  .header-date { color: rgba(255,255,255,0.8); font-size: 12px; text-align: right; }
+  .header-emoji { font-size: 32px; }
+  .streak-badge {
+    background: rgba(255,255,255,0.2);
+    border: 1.5px solid rgba(255,255,255,0.4);
+    border-radius: 20px;
+    padding: 4px 12px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 8px;
+    display: inline-block;
+  }
+
+  /* MAIN CALORIE RING */
+  .ring-card {
+    background: var(--card);
+    border-radius: 24px;
+    margin: -44px 16px 16px;
+    padding: 24px 20px;
+    box-shadow: var(--shadow);
+    position: relative;
+    z-index: 2;
+  }
+  .ring-container { display: flex; align-items: center; gap: 20px; }
+  .ring-wrap { position: relative; flex-shrink: 0; }
+  .ring-svg { transform: rotate(-90deg); }
+  .ring-center {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  .ring-consumed { font-family: 'Fredoka One', cursive; font-size: 28px; color: var(--text); line-height: 1; }
+  .ring-unit { font-size: 11px; color: var(--muted); font-weight: 700; }
+  .ring-label { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .ring-stats { flex: 1; }
+  .ring-goal-row { display: flex; justify-content: space-between; margin-bottom: 12px; }
+  .ring-stat { text-align: center; }
+  .ring-stat-val { font-family: 'Fredoka One', cursive; font-size: 20px; }
+  .ring-stat-label { font-size: 10px; color: var(--muted); font-weight: 700; }
+  .ring-stat.consumed .ring-stat-val { color: var(--cal); }
+  .ring-stat.goal .ring-stat-val { color: var(--muted); }
+  .ring-stat.remaining .ring-stat-val { color: #55efc4; }
+  .progress-mini { height: 8px; background: #F0E8DD; border-radius: 99px; overflow: hidden; margin-top: 4px; }
+  .progress-mini-fill { height: 100%; border-radius: 99px; transition: width 0.6s cubic-bezier(.34,1.56,.64,1); }
+
+  /* MACRO PILLS */
+  .macros-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 0 16px 16px;
+  }
+  .macro-pill {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 12px 8px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    border-top: 4px solid;
+  }
+  .macro-pill.protein { border-color: var(--protein); }
+  .macro-pill.carbs { border-color: var(--carbs); }
+  .macro-pill.fat { border-color: var(--fat); }
+  .macro-pill.water { border-color: var(--water); }
+  .macro-val { font-family: 'Fredoka One', cursive; font-size: 18px; }
+  .macro-pill.protein .macro-val { color: var(--protein); }
+  .macro-pill.carbs .macro-val { color: #c9a a00; color: #d4a200; }
+  .macro-pill.fat .macro-val { color: var(--fat); }
+  .macro-pill.water .macro-val { color: var(--water); }
+  .macro-label { font-size: 9px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+  .macro-goal { font-size: 10px; color: var(--muted); }
+
+  /* WATER TRACKER */
+  .water-card {
+    background: linear-gradient(135deg, #74B9FF, #0984e3);
+    border-radius: var(--radius);
+    margin: 0 16px 16px;
+    padding: 16px 20px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .water-glasses { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+  .glass {
+    width: 28px; height: 36px;
+    border: 2.5px solid rgba(255,255,255,0.6);
+    border-radius: 4px 4px 8px 8px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s;
+  }
+  .glass:hover { transform: scale(1.1); }
+  .glass.filled { border-color: rgba(255,255,255,0.9); }
+  .glass .fill {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(255,255,255,0.5);
+    transition: height 0.4s cubic-bezier(.34,1.56,.64,1);
+    height: 0%;
+  }
+  .glass.filled .fill { height: 100%; }
+  .water-info { color: #fff; }
+  .water-title { font-family: 'Fredoka One', cursive; font-size: 18px; }
+  .water-sub { font-size: 11px; opacity: .85; margin-top: 2px; }
+
+  /* FOOD LOG */
+  .section-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 16px; margin-bottom: 12px;
+  }
+  .section-title { font-family: 'Fredoka One', cursive; font-size: 20px; }
+  .add-btn {
+    background: var(--cal);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 8px 16px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.15s, background 0.15s;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .add-btn:hover { transform: scale(1.04); background: #ff5252; }
+  .meals-container { padding: 0 16px; }
+  .meal-group { margin-bottom: 16px; }
+  .meal-group-label {
+    font-size: 11px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--muted); margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .meal-group-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .food-item {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn { from { opacity:0; transform: translateY(-8px); } to { opacity:1; transform: translateY(0); } }
+  .food-emoji { font-size: 28px; width: 40px; text-align: center; }
+  .food-info { flex: 1; }
+  .food-name { font-weight: 800; font-size: 14px; }
+  .food-macros { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .food-macro-tag {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 99px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-right: 3px;
+  }
+  .tag-p { background: #d0f5f3; color: #0f7a74; }
+  .tag-c { background: #fff8d6; color: #8a6c00; }
+  .tag-f { background: #ffe4e6; color: #9b2335; }
+  .food-cal { font-family: 'Fredoka One', cursive; font-size: 18px; color: var(--cal); }
+  .food-cal-unit { font-size: 10px; color: var(--muted); }
+  .delete-btn {
+    background: none; border: none; cursor: pointer;
+    color: #ddd; font-size: 16px; padding: 4px;
+    transition: color 0.2s;
+  }
+  .delete-btn:hover { color: var(--cal); }
+  .empty-state {
+    text-align: center; padding: 32px 20px;
+    background: var(--card); border-radius: 16px;
+    border: 2px dashed var(--border);
+    margin-bottom: 16px;
+  }
+  .empty-emoji { font-size: 48px; margin-bottom: 8px; }
+  .empty-text { color: var(--muted); font-size: 14px; font-weight: 600; }
+
+  /* ADD FOOD MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 100;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--card);
+    border-radius: 28px 28px 0 0;
+    padding: 24px 20px 40px;
+    width: 100%; max-width: 480px;
+    animation: slideUp 0.3s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 99px; margin: 0 auto 20px; }
+  .modal-title { font-family: 'Fredoka One', cursive; font-size: 22px; margin-bottom: 16px; text-align: center; }
+  .form-row { margin-bottom: 12px; }
+  .form-label { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+  .form-input {
+    width: 100%; padding: 12px 14px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+    background: var(--bg);
+  }
+  .form-input:focus { border-color: var(--cal); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .meal-select-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .meal-chip {
+    padding: 7px 14px; border-radius: 99px;
+    border: 2px solid var(--border);
+    background: transparent;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .meal-chip.selected { background: var(--cal); border-color: var(--cal); color: #fff; }
+  .emoji-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .emoji-chip {
+    width: 42px; height: 42px; border-radius: 12px;
+    border: 2px solid var(--border); background: var(--bg);
+    font-size: 22px; cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .emoji-chip.selected { border-color: var(--cal); background: #fff0f0; transform: scale(1.1); }
+  .submit-btn {
+    width: 100%; padding: 16px;
+    background: linear-gradient(135deg, #FF6B6B, #FF8B94);
+    color: #fff; border: none; border-radius: 16px;
+    font-family: 'Fredoka One', cursive; font-size: 20px;
+    cursor: pointer; transition: transform 0.15s;
+    margin-top: 8px;
+  }
+  .submit-btn:hover { transform: scale(1.02); }
+
+  /* QUICK ADD */
+  .quick-foods {
+    display: flex; gap: 8px; overflow-x: auto;
+    padding: 0 16px 16px; scrollbar-width: none;
+  }
+  .quick-foods::-webkit-scrollbar { display: none; }
+  .quick-chip {
+    flex-shrink: 0; background: var(--card);
+    border-radius: 14px; padding: 10px 14px;
+    box-shadow: var(--shadow); cursor: pointer;
+    transition: transform 0.2s; text-align: center;
+    border: 2px solid transparent;
+  }
+  .quick-chip:hover { transform: translateY(-2px); border-color: var(--cal); }
+  .quick-chip-emoji { font-size: 24px; display: block; margin-bottom: 4px; }
+  .quick-chip-name { font-size: 11px; font-weight: 700; color: var(--text); display: block; }
+  .quick-chip-cal { font-size: 10px; color: var(--muted); display: block; }
+
+  /* DOWNLOAD BTN */
+  .download-bar {
+    padding: 16px;
+    display: flex; gap: 10px;
+  }
+  .dl-btn {
+    flex: 1; padding: 14px;
+    border-radius: 16px; border: none;
+    font-family: 'Fredoka One', cursive; font-size: 17px;
+    cursor: pointer; transition: transform 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .dl-btn:hover { transform: scale(1.02); }
+  .dl-btn.save { background: linear-gradient(135deg, #55efc4, #00b894); color: #fff; }
+  .dl-btn.share { background: linear-gradient(135deg, #a29bfe, #6c5ce7); color: #fff; }
+
+  .tip-banner {
+    background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+    border-radius: var(--radius);
+    margin: 0 16px 16px;
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .tip-icon { font-size: 22px; }
+  .tip-text { font-size: 12px; font-weight: 700; color: #6c4a00; line-height: 1.4; }
+
+  .bottom-pad { height: 20px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="greeting">Good day,</div>
+      <div class="user-name">Tirsana 🌿</div>
+      <div class="streak-badge" id="streakBadge">🔥 Day 1 streak</div>
+    </div>
+    <div>
+      <div class="header-emoji">🥗</div>
+      <div class="header-date" id="headerDate"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CALORIE RING CARD -->
+<div class="ring-card">
+  <div class="ring-container">
+    <div class="ring-wrap">
+      <svg class="ring-svg" width="110" height="110" viewBox="0 0 110 110">
+        <circle cx="55" cy="55" r="44" fill="none" stroke="#F0E8DD" stroke-width="10"/>
+        <circle cx="55" cy="55" r="44" fill="none" stroke="#FF6B6B" stroke-width="10"
+          stroke-linecap="round"
+          stroke-dasharray="276.46"
+          stroke-dashoffset="276.46"
+          id="calRing"
+          style="transition: stroke-dashoffset 1s cubic-bezier(.34,1.56,.64,1);"/>
+      </svg>
+      <div class="ring-center">
+        <div class="ring-consumed" id="ringCalDisplay">0</div>
+        <div class="ring-unit">kcal</div>
+        <div class="ring-label">eaten</div>
+      </div>
+    </div>
+    <div class="ring-stats">
+      <div class="ring-goal-row">
+        <div class="ring-stat consumed">
+          <div class="ring-stat-val" id="statConsumed">0</div>
+          <div class="ring-stat-label">Eaten</div>
+        </div>
+        <div class="ring-stat goal">
+          <div class="ring-stat-val">1500</div>
+          <div class="ring-stat-label">Goal</div>
+        </div>
+        <div class="ring-stat remaining">
+          <div class="ring-stat-val" id="statRemaining">1500</div>
+          <div class="ring-stat-label">Left</div>
+        </div>
+      </div>
+      <div class="progress-mini">
+        <div class="progress-mini-fill" id="calProgress" style="background: linear-gradient(90deg, #FF6B6B, #FF8B94); width:0%"></div>
+      </div>
+      <div style="font-size:11px; color:var(--muted); margin-top:6px; text-align:right;" id="calPct">0% of daily goal</div>
+    </div>
+  </div>
+</div>
+
+<!-- MACROS -->
+<div class="macros-row">
+  <div class="macro-pill protein">
+    <div class="macro-val" id="macroProtein" style="color:#4ECDC4">0g</div>
+    <div class="macro-label">Protein</div>
+    <div class="macro-goal">/ 120g</div>
+  </div>
+  <div class="macro-pill carbs">
+    <div class="macro-val" id="macroCarbs" style="color:#d4a200">0g</div>
+    <div class="macro-label">Carbs</div>
+    <div class="macro-goal">/ 150g</div>
+  </div>
+  <div class="macro-pill fat">
+    <div class="macro-val" id="macroFat" style="color:#FF8B94">0g</div>
+    <div class="macro-label">Fats</div>
+    <div class="macro-goal">/ 50g</div>
+  </div>
+  <div class="macro-pill water">
+    <div class="macro-val" id="macroWater" style="color:#74B9FF">0</div>
+    <div class="macro-label">Water</div>
+    <div class="macro-goal">/ 8 glasses</div>
+  </div>
+</div>
+
+<!-- WATER TRACKER -->
+<div class="water-card">
+  <div class="water-info">
+    <div class="water-title">💧 Hydration</div>
+    <div class="water-sub" id="waterSub">0 of 8 glasses</div>
+  </div>
+  <div class="water-glasses" id="waterGlasses"></div>
+</div>
+
+<!-- TIP BANNER -->
+<div class="tip-banner" id="tipBanner">
+  <div class="tip-icon">💡</div>
+  <div class="tip-text" id="tipText">Start your day with a glass of water before breakfast!</div>
+</div>
+
+<!-- QUICK ADD -->
+<div class="section-header">
+  <div class="section-title">⚡ Quick Add</div>
+</div>
+<div class="quick-foods" id="quickFoods"></div>
+
+<!-- FOOD LOG -->
+<div class="section-header">
+  <div class="section-title">📋 Today's Log</div>
+  <button class="add-btn" onclick="openModal()">+ Add Food</button>
+</div>
+<div class="meals-container" id="mealsContainer"></div>
+
+<!-- DOWNLOAD BAR -->
+<div class="download-bar">
+  <button class="dl-btn save" onclick="downloadApp()">⬇ Download App</button>
+  <button class="dl-btn share" onclick="shareLog()">📤 Share Log</button>
+</div>
+
+<div class="bottom-pad"></div>
+
+<!-- ADD FOOD MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🍽️ Log Food</div>
+
+    <div class="form-label">Meal</div>
+    <div class="meal-select-row" id="mealChips">
+      <button class="meal-chip selected" onclick="selectMeal(this,'Breakfast')">🌅 Breakfast</button>
+      <button class="meal-chip" onclick="selectMeal(this,'Lunch')">☀️ Lunch</button>
+      <button class="meal-chip" onclick="selectMeal(this,'Dinner')">🌙 Dinner</button>
+      <button class="meal-chip" onclick="selectMeal(this,'Snack')">🍎 Snack</button>
+    </div>
+
+    <div class="form-label">Pick an emoji</div>
+    <div class="emoji-row" id="emojiRow"></div>
+
+    <div class="form-row">
+      <div class="form-label">Food name</div>
+      <input class="form-input" id="foodName" placeholder="e.g. Grilled chicken salad" />
+    </div>
+    <div class="form-grid">
+      <div class="form-row">
+        <div class="form-label">Calories (kcal)</div>
+        <input class="form-input" id="foodCal" type="number" placeholder="350" min="0" />
+      </div>
+      <div class="form-row">
+        <div class="form-label">Protein (g)</div>
+        <input class="form-input" id="foodProtein" type="number" placeholder="30" min="0" />
+      </div>
+      <div class="form-row">
+        <div class="form-label">Carbs (g)</div>
+        <input class="form-input" id="foodCarbs" type="number" placeholder="20" min="0" />
+      </div>
+      <div class="form-row">
+        <div class="form-label">Fats (g)</div>
+        <input class="form-input" id="foodFat" type="number" placeholder="10" min="0" />
+      </div>
+    </div>
+    <button class="submit-btn" onclick="addFood()">Log it! 🎉</button>
+  </div>
+</div>
+
+<script>
+const GOAL_CAL = 1500;
+const GOAL_PROTEIN = 120;
+const GOAL_CARBS = 150;
+const GOAL_FAT = 50;
+const GOAL_WATER = 8;
+
+const TIPS = [
+  "Start your day with a glass of water before breakfast!",
+  "Protein keeps you fuller longer — aim for 30g per meal.",
+  "Colorful veggies = more nutrients. Eat the rainbow!",
+  "Try to eat slowly — it takes 20 mins to feel full.",
+  "A handful of nuts makes a great 150-cal snack.",
+  "Staying hydrated can reduce false hunger signals.",
+  "Meal prep on Sundays saves time and calories all week!",
+  "Greek yogurt has 2x the protein of regular yogurt.",
+];
+
+const QUICK_FOODS = [
+  { emoji:'🍌', name:'Banana', cal:89, protein:1, carbs:23, fat:0 },
+  { emoji:'🥚', name:'Egg (boiled)', cal:68, protein:6, carbs:0, fat:5 },
+  { emoji:'🥤', name:'Protein shake', cal:150, protein:25, carbs:5, fat:3 },
+  { emoji:'🍎', name:'Apple', cal:95, protein:0, carbs:25, fat:0 },
+  { emoji:'🥑', name:'Avocado (½)', cal:120, protein:2, carbs:6, fat:11 },
+  { emoji:'🍚', name:'White rice (1c)', cal:206, protein:4, carbs:45, fat:0 },
+  { emoji:'🥗', name:'Garden salad', cal:80, protein:3, carbs:10, fat:3 },
+  { emoji:'🍗', name:'Chicken breast', cal:165, protein:31, carbs:0, fat:4 },
+];
+
+const EMOJIS = ['🍎','🥗','🍗','🥩','🥚','🧀','🍞','🍚','🥦','🍌','🍜','🥞','🫐','🍊','🍋','🥕','🥑','🧁'];
+
+let foods = JSON.parse(localStorage.getItem('tirsana_foods') || '[]');
+let waterCount = parseInt(localStorage.getItem('tirsana_water') || '0');
+let selectedMeal = 'Breakfast';
+let selectedEmoji = '🍎';
+let streak = parseInt(localStorage.getItem('tirsana_streak') || '1');
+
+function init() {
+  document.getElementById('headerDate').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+  document.getElementById('tipText').textContent = TIPS[Math.floor(Math.random()*TIPS.length)];
+  document.getElementById('streakBadge').textContent = '🔥 Day ' + streak + ' streak';
+
+  buildEmojiRow();
+  buildQuickFoods();
+  buildWaterGlasses();
+  renderAll();
+
+  setTimeout(animateRing, 300);
+}
+
+function buildEmojiRow() {
+  const row = document.getElementById('emojiRow');
+  row.innerHTML = '';
+  EMOJIS.forEach((e,i) => {
+    const btn = document.createElement('button');
+    btn.className = 'emoji-chip' + (i===0?' selected':'');
+    btn.textContent = e;
+    btn.onclick = () => {
+      document.querySelectorAll('.emoji-chip').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedEmoji = e;
+    };
+    row.appendChild(btn);
+  });
+  selectedEmoji = EMOJIS[0];
+}
+
+function buildQuickFoods() {
+  const wrap = document.getElementById('quickFoods');
+  wrap.innerHTML = '';
+  QUICK_FOODS.forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'quick-chip';
+    div.innerHTML = `<span class="quick-chip-emoji">${f.emoji}</span><span class="quick-chip-name">${f.name}</span><span class="quick-chip-cal">${f.cal} kcal</span>`;
+    div.onclick = () => quickAdd(f);
+    wrap.appendChild(div);
+  });
+}
+
+function buildWaterGlasses() {
+  const wrap = document.getElementById('waterGlasses');
+  wrap.innerHTML = '';
+  for(let i=0;i<GOAL_WATER;i++){
+    const g = document.createElement('div');
+    g.className = 'glass' + (i<waterCount?' filled':'');
+    g.innerHTML = '<div class="fill"></div>';
+    const idx = i;
+    g.onclick = () => toggleWater(idx);
+    wrap.appendChild(g);
+  }
+}
+
+function toggleWater(idx) {
+  waterCount = (idx < waterCount) ? idx : idx+1;
+  localStorage.setItem('tirsana_water', waterCount);
+  buildWaterGlasses();
+  document.getElementById('waterSub').textContent = waterCount + ' of ' + GOAL_WATER + ' glasses';
+  document.getElementById('macroWater').textContent = waterCount;
+}
+
+function getTotals() {
+  return foods.reduce((acc, f) => ({
+    cal: acc.cal + (f.cal||0),
+    protein: acc.protein + (f.protein||0),
+    carbs: acc.carbs + (f.carbs||0),
+    fat: acc.fat + (f.fat||0),
+  }), {cal:0,protein:0,carbs:0,fat:0});
+}
+
+function animateRing() {
+  const t = getTotals();
+  const pct = Math.min(t.cal / GOAL_CAL, 1);
+  const circ = 2 * Math.PI * 44;
+  const offset = circ * (1 - pct);
+  const ring = document.getElementById('calRing');
+  ring.style.strokeDashoffset = offset;
+  const color = pct >= 1 ? '#e74c3c' : pct > 0.8 ? '#f39c12' : '#FF6B6B';
+  ring.style.stroke = color;
+}
+
+function renderAll() {
+  const t = getTotals();
+  const pct = Math.min(Math.round(t.cal / GOAL_CAL * 100), 100);
+
+  document.getElementById('ringCalDisplay').textContent = t.cal;
+  document.getElementById('statConsumed').textContent = t.cal;
+  document.getElementById('statRemaining').textContent = Math.max(GOAL_CAL - t.cal, 0);
+  document.getElementById('calProgress').style.width = pct + '%';
+  document.getElementById('calPct').textContent = pct + '% of daily goal';
+
+  document.getElementById('macroProtein').textContent = t.protein + 'g';
+  document.getElementById('macroCarbs').textContent = t.carbs + 'g';
+  document.getElementById('macroFat').textContent = t.fat + 'g';
+  document.getElementById('macroWater').textContent = waterCount;
+  document.getElementById('waterSub').textContent = waterCount + ' of ' + GOAL_WATER + ' glasses';
+
+  if(pct >= 100) {
+    document.getElementById('calProgress').style.background = 'linear-gradient(90deg, #e74c3c, #c0392b)';
+    document.getElementById('tipText').textContent = "You've hit your calorie goal for today! Great work — stay hydrated!";
+  }
+
+  renderMeals();
+  animateRing();
+}
+
+function renderMeals() {
+  const container = document.getElementById('mealsContainer');
+  const meals = ['Breakfast','Lunch','Dinner','Snack'];
+  const mealEmojis = { Breakfast:'🌅', Lunch:'☀️', Dinner:'🌙', Snack:'🍎' };
+  container.innerHTML = '';
+
+  let hasAny = false;
+  meals.forEach(m => {
+    const items = foods.filter(f => f.meal === m);
+    if(items.length === 0) return;
+    hasAny = true;
+    const group = document.createElement('div');
+    group.className = 'meal-group';
+    const mealCals = items.reduce((s,f)=>s+f.cal,0);
+    group.innerHTML = `<div class="meal-group-label">${mealEmojis[m]} ${m} &nbsp;·&nbsp; ${mealCals} kcal</div>`;
+    items.forEach((f,i) => {
+      const item = document.createElement('div');
+      item.className = 'food-item';
+      item.innerHTML = `
+        <div class="food-emoji">${f.emoji}</div>
+        <div class="food-info">
+          <div class="food-name">${f.name}</div>
+          <div class="food-macros">
+            <span class="food-macro-tag tag-p">P: ${f.protein}g</span>
+            <span class="food-macro-tag tag-c">C: ${f.carbs}g</span>
+            <span class="food-macro-tag tag-f">F: ${f.fat}g</span>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div class="food-cal">${f.cal}</div>
+          <div class="food-cal-unit">kcal</div>
+        </div>
+        <button class="delete-btn" onclick="deleteFood('${f.id}')">✕</button>`;
+      group.appendChild(item);
+    });
+    container.appendChild(group);
+  });
+
+  if(!hasAny) {
+    container.innerHTML = `<div class="empty-state">
+      <div class="empty-emoji">🍽️</div>
+      <div class="empty-text">Nothing logged yet — tap + Add Food to start!</div>
+    </div>`;
+  }
+}
+
+function selectMeal(btn, meal) {
+  document.querySelectorAll('.meal-chip').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedMeal = meal;
+}
+
+function openModal() {
+  document.getElementById('modalOverlay').classList.add('open');
+  document.getElementById('foodName').focus();
+}
+
+function closeModalOutside(e) {
+  if(e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.getElementById('foodName').value = '';
+  document.getElementById('foodCal').value = '';
+  document.getElementById('foodProtein').value = '';
+  document.getElementById('foodCarbs').value = '';
+  document.getElementById('foodFat').value = '';
+}
+
+function addFood() {
+  const name = document.getElementById('foodName').value.trim();
+  const cal = parseInt(document.getElementById('foodCal').value) || 0;
+  const protein = parseInt(document.getElementById('foodProtein').value) || 0;
+  const carbs = parseInt(document.getElementById('foodCarbs').value) || 0;
+  const fat = parseInt(document.getElementById('foodFat').value) || 0;
+
+  if(!name || !cal) {
+    document.getElementById('foodName').style.borderColor = '#FF6B6B';
+    setTimeout(()=>document.getElementById('foodName').style.borderColor='',1000);
+    return;
+  }
+
+  foods.push({ id: Date.now().toString(), name, cal, protein, carbs, fat, meal: selectedMeal, emoji: selectedEmoji });
+  save();
+  closeModal();
+  renderAll();
+}
+
+function quickAdd(f) {
+  foods.push({ id: Date.now().toString(), name: f.name, cal: f.cal, protein: f.protein, carbs: f.carbs, fat: f.fat, meal: selectedMeal || 'Snack', emoji: f.emoji });
+  save();
+  renderAll();
+  const chips = document.querySelectorAll('.quick-chip');
+  QUICK_FOODS.forEach((qf,i)=>{ if(qf.name===f.name){ chips[i].style.transform='scale(0.95)'; setTimeout(()=>chips[i].style.transform='',200); } });
+}
+
+function deleteFood(id) {
+  foods = foods.filter(f=>f.id!==id);
+  save();
+  renderAll();
+}
+
+function save() {
+  localStorage.setItem('tirsana_foods', JSON.stringify(foods));
+}
+
+function downloadApp() {
+  const html = document.documentElement.outerHTML;
+  const blob = new Blob([html], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'tirsana_nutrition_tracker.html';
+  a.click();
+}
+
+function shareLog() {
+  const t = getTotals();
+  const lines = [`🥗 Track Your Food — Daily Log — ${new Date().toLocaleDateString()}\n`];
+  lines.push(`📊 Calories: ${t.cal} / ${GOAL_CAL} kcal (${Math.round(t.cal/GOAL_CAL*100)}%)`);
+  lines.push(`💪 Protein: ${t.protein}g | 🍞 Carbs: ${t.carbs}g | 🧈 Fats: ${t.fat}g`);
+  lines.push(`💧 Water: ${waterCount} / ${GOAL_WATER} glasses\n`);
+  lines.push(`🍽️ Foods logged:`);
+  foods.forEach(f => lines.push(`  ${f.emoji} ${f.name} (${f.meal}) — ${f.cal} kcal`));
+  lines.push(`\nTracked with Track Your Food 🌿`);
+  const text = lines.join('\n');
+
+  if(navigator.share) {
+    navigator.share({ title: "Track Your Food — Daily Log", text });
+  } else {
+    navigator.clipboard.writeText(text).then(()=>alert('Log copied to clipboard! Paste it anywhere to share.'));
+  }
+}
+
+init();
+</script>
+</body>
+</html>
